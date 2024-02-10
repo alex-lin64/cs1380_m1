@@ -92,23 +92,23 @@ test("(2 pts) serializeNull", () => {
 //   expect(deserialized).toEqual(object);
 // });
 
-// test("(4 pts) serializeFunction", () => {
-//   const fn = (a, b) => a + b;
-//   const serialized = util.serialize(fn);
-//   const deserialized = util.deserialize(serialized);
+test("(4 pts) serializeFunction", () => {
+  const fn = (a, b) => a + b;
+  const serialized = util.serialize(fn);
+  const deserialized = util.deserialize(serialized);
 
-//   expect(typeof deserialized).toBe("function");
-//   expect(deserialized(42, 1)).toBe(43);
-// });
+  expect(typeof deserialized).toBe("function");
+  expect(deserialized(42, 1)).toBe(43);
+});
 
-// test("(6 pts) serializeObjectWithFunctions", () => {
-//   const fn = (a, b) => a + b;
-//   const object = { func: fn };
-//   const serialized = util.serialize(object);
-//   const deserialized = util.deserialize(serialized);
-//   expect(typeof deserialized.func).toBe("function");
-//   expect(deserialized.func(42, 1)).toBe(43);
-// });
+test("(6 pts) serializeObjectWithFunctions", () => {
+  const fn = (a, b) => a + b;
+  const object = { func: fn };
+  const serialized = util.serialize(object);
+  const deserialized = util.deserialize(serialized);
+  expect(typeof deserialized.func).toBe("function");
+  expect(deserialized.func(42, 1)).toBe(43);
+});
 
 // test("(7 pts) serializeNativeFunction", () => {
 //   const fn = console.log;

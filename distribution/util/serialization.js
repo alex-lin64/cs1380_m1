@@ -117,10 +117,30 @@ const deserializeUndefined = (undefinedObj) => {
 };
 
 // serializes a function
-const serializeFunc = (func) => {};
+const serializeFunc = (func) => {
+  const funcObj = {
+    type: "function",
+    value: serialize(func.toString()),
+  };
+
+  return JSON.stringify(funcObj);
+};
 
 // deserializes a function
-const deserializeFunc = (func) => {};
+const deserializeFunc = (funcObj) => {
+  if (funcObj.type != "function") {
+    console.error("Not a function object");
+    return;
+  }
+
+  const rawFunc = deserialize(funcObj.value);
+  const parameterRegex = /\((.*?)\)/;
+  const parameters = rawFunc.match(parameterRegex)[1].split(/\s*,\s*/);
+
+  const func = new Function(`return ${rawFunc}`)();
+  // console.log(func.toString());
+  return func;
+};
 
 // serializes arrs and any nested objs in the array
 const serializeArr = (arr) => {
