@@ -56,24 +56,24 @@ test("(4 pts) serializeError", () => {
   expect(deserialized).toEqual(error);
 });
 
-// test("(4 pts) serializeDate", () => {
-//   const date = new Date();
-//   const serialized = util.serialize(date);
-//   const deserialized = util.deserialize(serialized);
-//   expect(deserialized.getTime()).toBe(date.getTime());
-// });
+test("(4 pts) serializeDate", () => {
+  const date = new Date();
+  const serialized = util.serialize(date);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized.getTime()).toBe(date.getTime());
+});
 
-// test("(2 pts) serializeUndefined", () => {
-//   const serialized = util.serialize(undefined);
-//   const deserialized = util.deserialize(serialized);
-//   expect(deserialized).toBeUndefined();
-// });
+test("(2 pts) serializeUndefined", () => {
+  const serialized = util.serialize(undefined);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized).toBeUndefined();
+});
 
-// test("(2 pts) serializeNull", () => {
-//   const serialized = util.serialize(null);
-//   const deserialized = util.deserialize(serialized);
-//   expect(deserialized).toBeNull();
-// });
+test("(2 pts) serializeNull", () => {
+  const serialized = util.serialize(null);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized).toBeNull();
+});
 
 // test("(7 pts) serializeCircularObject", () => {
 //   const object = { a: 1, b: 2, c: 3 };
