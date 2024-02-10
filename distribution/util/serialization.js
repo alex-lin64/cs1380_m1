@@ -1,3 +1,12 @@
+const crypto = require("crypto");
+
+// hashes a string input
+function hash(input) {
+  const hashFunction = crypto.createHash("sha256");
+  hashFunction.update(input);
+  return hashFunction.digest("hex");
+}
+
 // serializes the basics (string, number, boolean)
 const serializeBasics = (basicType) => {
   const obj = {
@@ -134,8 +143,8 @@ const deserializeFunc = (funcObj) => {
   }
 
   const rawFunc = deserialize(funcObj.value);
-  const parameterRegex = /\((.*?)\)/;
-  const parameters = rawFunc.match(parameterRegex)[1].split(/\s*,\s*/);
+  // const parameterRegex = /\((.*?)\)/;
+  // const parameters = rawFunc.match(parameterRegex)[1].split(/\s*,\s*/);
 
   const func = new Function(`return ${rawFunc}`)();
   // console.log(func.toString());
@@ -177,6 +186,9 @@ const deserializeArr = (arrObj) => {
   return arr;
 };
 
+// visited objs
+var visit = new Map();
+
 const serializeObj = (obj) => {
   // console.log(JSON.stringify(obj));
 
@@ -184,15 +196,25 @@ const serializeObj = (obj) => {
   const serializedObj = {
     type: "object",
     value: "",
+    id: ""
   };
+
+  visit.set(hash(JSON.stringify(obj)), obj);
+
+  x = {g:1}
+  {a: 1, b: {p:x}}
 
   const updatedObj = {};
   for (const [key, value] of Object.entries(obj)) {
+    if (visit.has(value)) {
+      updatedObj[serialize(key)] = JSON.stringify("[Circular]");
+      continue;
+    }
     updatedObj[serialize(key)] = serialize(value);
   }
   // console.log(updatedObj);
   serializedObj.value = JSON.stringify(updatedObj);
-  // console.log(serializedObj);
+  console.log(serializedObj);
   return JSON.stringify(serializedObj);
 };
 

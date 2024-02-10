@@ -75,22 +75,22 @@ test("(2 pts) serializeNull", () => {
   expect(deserialized).toBeNull();
 });
 
-// test("(7 pts) serializeCircularObject", () => {
-//   const object = { a: 1, b: 2, c: 3 };
-//   object.self = object;
-//   const serialized = util.serialize(object);
-//   const deserialized = util.deserialize(serialized);
-//   expect(deserialized).toEqual(object);
-// });
+test("(7 pts) serializeCircularObject", () => {
+  const object = { a: 1, b: 2, c: 3 };
+  object.self = object;
+  const serialized = util.serialize(object);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized).toEqual(object);
+});
 
-// test("(7 pts) serializeKindaCircularObject", () => {
-//   const x = { a: 1, b: 2, c: 3 };
-//   const object = { a: x, b: x, c: 1 };
-//   const serialized = util.serialize(object);
-//   const deserialized = util.deserialize(serialized);
+test("(7 pts) serializeKindaCircularObject", () => {
+  const x = { a: 1, b: 2, c: 3 };
+  const object = { a: x, b: x, c: 1 };
+  const serialized = util.serialize(object);
+  const deserialized = util.deserialize(serialized);
 
-//   expect(deserialized).toEqual(object);
-// });
+  expect(deserialized).toEqual(object);
+});
 
 test("(4 pts) serializeFunction", () => {
   const fn = (a, b) => a + b;
