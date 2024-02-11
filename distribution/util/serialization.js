@@ -1,35 +1,3 @@
-class Queue {
-  constructor(arr) {
-    this.items = arr;
-  }
-
-  enqueue(element) {
-    this.items.push(element);
-  }
-
-  dequeue() {
-    if (this.isEmpty()) {
-      return "Underflow";
-    }
-    return this.items.shift();
-  }
-
-  front() {
-    if (this.isEmpty()) {
-      return "No elements in Queue";
-    }
-    return this.items[0];
-  }
-
-  isEmpty() {
-    return this.items.length === 0;
-  }
-
-  length() {
-    return this.items.length;
-  }
-}
-
 // serializes the basics (string, number, boolean)
 const serializeBasics = (basicType) => {
   const obj = {
@@ -186,24 +154,20 @@ const serializeObjAndArrs = (obj) => {
       value: "",
     };
 
-    let updatedObj = null;
+    let updatedObj;
     // if array, traverse like array
     if (object instanceof Array) {
-      updatedObj = [];
-
-      object.forEach((ele, i) => {
+      updatedObj = object.map((ele, i) => {
         if (
-          typeof ele != "object" ||
+          typeof ele !== "object" ||
           ele === null ||
           ele instanceof Date ||
           ele instanceof Error
         ) {
-          updatedObj.push(serialize(ele));
-          return;
+          return serialize(ele);
         }
-        const newPath = curPath + `.#$${i}`;
-        const serEle = dfs(ele, newPath);
-        updatedObj.push(serEle);
+        const newPath = `${curPath}[${i}]`;
+        return dfs(ele, newPath);
       });
     } else {
       // traverse like object
@@ -219,29 +183,25 @@ const serializeObjAndArrs = (obj) => {
           updatedObj[serialize(key)] = serialize(value);
           continue;
         }
-        const newPath = curPath + `.${key.toString()}`;
+        const newPath = `${curPath}.${key.toString()}`;
         updatedObj[serialize(key)] = dfs(value, newPath);
       }
     }
-
     res.value = updatedObj;
     return JSON.stringify(res);
   }
-
   const visit = new Map();
-  visit.set();
-
   return dfs(obj, "#REF:$");
 };
 
 // deserializes objects and arrays
-const deserializeObjAndArrs = (obj) => {
+const deserializePartial = (obj) => {
   if (obj.type != "object" && obj.type != "array") {
     console.error("Not an object or array");
     return;
   }
 
-  let deserializedObj = null;
+  let deserializedObj;
 
   if (obj.type == "object") {
     deserializedObj = {};
@@ -251,6 +211,10 @@ const deserializeObjAndArrs = (obj) => {
       const val = JSON.parse(value);
       if (typeof val == "string" && val.startsWith("#REF:$")) {
         deserializedObj[parsedKey] = val;
+        continue;
+      }
+      if (val.type == "object" || val.type == "array") {
+        deserializedObj[parsedKey] = deserializePartial(val);
         continue;
       }
       deserializedObj[parsedKey] = deserialize(value);
@@ -264,50 +228,27 @@ const deserializeObjAndArrs = (obj) => {
         deserializedObj.push(val);
         return;
       }
+      if (val.type == "object" || val.type == "array") {
+        deserializedObj.push(deserializePartial(val));
+        return;
+      }
       const deserEle = deserialize(ele);
       deserializedObj.push(deserEle);
     });
   }
+  return deserializedObj;
+};
 
-  console.log(deserializedObj);
-  const resObj = resolveRefsObjs(deserializedObj);
-  // console.log(deserializedObj);
-
-  return resObj;
+// deserializes the references
+const deserializeObjAndArrs = (obj) => {
+  const partialDeserialized = deserializePartial(obj);
+  return resolveRefsObjs(partialDeserialized);
 };
 
 // resolves all circular and duplicate references in the partially
 // deserialized object -- credit to https://stackoverflow.com/questions/10392293/stringify-convert-to-json-a-javascript-object-with-circular-reference
 // for algo
 function resolveRefsObjs(inputObj) {
-  let objToPath = new Map();
-  let pathToObj = new Map();
-
-  let traverse = (parent, field) => {
-    let obj = parent;
-    let path = "#REF:$";
-
-    if (field !== undefined) {
-      obj = parent[field];
-      path =
-        objToPath.get(parent) +
-        (Array.isArray(parent) ? `[${field}]` : `${field ? "." + field : ""}`);
-    }
-
-    objToPath.set(obj, path);
-    pathToObj.set(path, obj);
-
-    let ref = pathToObj.get(obj);
-    if (ref) parent[field] = ref;
-
-    for (let f in obj) if (obj === Object(obj)) traverse(obj, f);
-  };
-
-  traverse(inputObj);
-  return inputObj;
-}
-
-function resolveRefsArrs(inputObj) {
   let objToPath = new Map();
   let pathToObj = new Map();
 

@@ -6,7 +6,7 @@ test("(0 pts) circularArray1", () => {
   y.push(y);
   const serialized = util.serialize(y);
   const deserialized = util.deserialize(serialized);
-  expect(deserialized).toBe(y);
+  expect(deserialized).toEqual(y);
 });
 
 test("(0 pts) circularArray2", () => {
@@ -18,7 +18,19 @@ test("(0 pts) circularArray2", () => {
   x.push(z);
   const serialized = util.serialize(y);
   const deserialized = util.deserialize(serialized);
-  expect(deserialized).toBe(y);
+  expect(deserialized).toEqual(y);
 });
 
-// [[1, 2, 3, y, [3, x]], [1, 2, 3, y, [3, x]], y];
+test("(0 pts) circularArrayAndObjMix", () => {
+  const x = [1, 2, 3];
+  const z = { a: x, c: 9 };
+  const y = [x, x];
+  y.push(y);
+  x.push(y);
+  x.push(z);
+  z.b = y;
+  z.self = z;
+  const serialized = util.serialize(y);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized).toEqual(y);
+});

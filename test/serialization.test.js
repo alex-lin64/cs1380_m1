@@ -110,46 +110,46 @@ test("(6 pts) serializeObjectWithFunctions", () => {
   expect(deserialized.func(42, 1)).toBe(43);
 });
 
-// test("(7 pts) serializeNativeFunction", () => {
-//   const fn = console.log;
-//   const serialized = util.serialize(fn);
-//   const deserialized = util.deserialize(serialized);
-//   // Native function serialization might not work as expected
-//   expect(typeof deserialized).toBe("function");
-// });
+test("(7 pts) serializeNativeFunction", () => {
+  const fn = console.log;
+  const serialized = util.serialize(fn);
+  const deserialized = util.deserialize(serialized);
+  // Native function serialization might not work as expected
+  expect(typeof deserialized).toBe("function");
+});
 
-// test("(5 pts) serializeObjectWithNativeFunctions", () => {
-//   const object = { a: console.log };
-//   const serialized = util.serialize(object);
-//   const deserialized = util.deserialize(serialized);
-//   // Native function serialization might not work as expected
-//   expect(deserialized.a).toBe(console.log);
-// });
+test("(5 pts) serializeObjectWithNativeFunctions", () => {
+  const object = { a: console.log };
+  const serialized = util.serialize(object);
+  const deserialized = util.deserialize(serialized);
+  // Native function serialization might not work as expected
+  expect(deserialized.a).toBe(console.log);
+});
 
-// test("(6 pts) serializeObjectWithNameClashFunctions", () => {
-//   const object = { log: () => 42 };
-//   const serialized = util.serialize(object);
-//   const deserialized = util.deserialize(serialized);
-//   expect(typeof deserialized.log).toBe("function");
-//   expect(deserialized.log()).toBe(42);
-// });
+test("(6 pts) serializeObjectWithNameClashFunctions", () => {
+  const object = { log: () => 42 };
+  const serialized = util.serialize(object);
+  const deserialized = util.deserialize(serialized);
+  expect(typeof deserialized.log).toBe("function");
+  expect(deserialized.log()).toBe(42);
+});
 
-// test("(7 pts) serializeRainbowObject", () => {
-//   const object = {
-//     n: 1,
-//     s: "Hello, World!",
-//     a: [1, 2, 3, 4, 5],
-//     e: new Error("Hello, World!"),
-//     d: new Date(),
-//     o: { x: 1, y: 2, z: 3 },
-//     n: null,
-//     u: undefined,
-//   };
+test("(7 pts) serializeRainbowObject", () => {
+  const object = {
+    n: 1,
+    s: "Hello, World!",
+    a: [1, 2, 3, 4, 5],
+    e: new Error("Hello, World!"),
+    d: new Date(),
+    o: { x: 1, y: 2, z: 3 },
+    n: null,
+    u: undefined,
+  };
 
-//   object.self = object;
+  object.self = object;
 
-//   const serialized = util.serialize(object);
-//   const deserialized = util.deserialize(serialized);
+  const serialized = util.serialize(object);
+  const deserialized = util.deserialize(serialized);
 
-//   expect(deserialized).toEqual(object);
-// });
+  expect(deserialized).toEqual(object);
+});
