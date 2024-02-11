@@ -172,43 +172,8 @@ const deserializeFunc = (funcObj) => {
   return func;
 };
 
-// serializes arrs and any nested objs in the array
-const serializeArr = (arr) => {
-  // for arrays, make sure to loop through each val and serialize each element
-  const arrObj = {
-    type: "array",
-    value: "",
-  };
-
-  const updatedArr = [];
-  arr.forEach((ele) => {
-    updatedArr.push(serialize(ele));
-  });
-
-  arrObj.value = JSON.stringify(updatedArr);
-  // console.log(arrObj);
-  return JSON.stringify(arrObj);
-};
-
-// deserializes arrays
-const deserializeArr = (arrObj) => {
-  if (arrObj.type != "array") {
-    console.error("Not an array object");
-    return;
-  }
-
-  const arr = [];
-  const rawArr = JSON.parse(arrObj.value);
-
-  rawArr.forEach((ele) => {
-    arr.push(deserialize(ele));
-  });
-
-  return arr;
-};
-
-// recursively set all circular references to a ref id for objs
-function circularObjAndArrs(obj) {
+// seralizes objects and arrays
+const serializeObjAndArrs = (obj) => {
   // dfs to traverse all nodes in obj
   function dfs(object, curPath) {
     if (visit.has(object)) {
@@ -224,6 +189,22 @@ function circularObjAndArrs(obj) {
     let updatedObj = null;
     // if array, traverse like array
     if (object instanceof Array) {
+      updatedObj = [];
+
+      object.forEach((ele, i) => {
+        if (
+          typeof ele != "object" ||
+          ele === null ||
+          ele instanceof Date ||
+          ele instanceof Error
+        ) {
+          updatedObj.push(serialize(ele));
+          return;
+        }
+        const newPath = curPath + `.#$${i}`;
+        const serEle = dfs(ele, newPath);
+        updatedObj.push(serEle);
+      });
     } else {
       // traverse like object
       updatedObj = {};
@@ -231,10 +212,9 @@ function circularObjAndArrs(obj) {
       for (const [key, value] of Object.entries(object)) {
         if (
           typeof value != "object" ||
-          object === null ||
-          object instanceof Date ||
-          object instanceof Error ||
-          object instanceof Array
+          value === null ||
+          value instanceof Date ||
+          value instanceof Error
         ) {
           updatedObj[serialize(key)] = serialize(value);
           continue;
@@ -252,18 +232,54 @@ function circularObjAndArrs(obj) {
   visit.set();
 
   return dfs(obj, "#REF:$");
-}
+};
 
-// seralizes an object
-const serializeObj = (obj) => {
-  const res = circularObj(obj);
-  return res;
+// deserializes objects and arrays
+const deserializeObjAndArrs = (obj) => {
+  if (obj.type != "object" && obj.type != "array") {
+    console.error("Not an object or array");
+    return;
+  }
+
+  let deserializedObj = null;
+
+  if (obj.type == "object") {
+    deserializedObj = {};
+
+    for (const [key, value] of Object.entries(obj.value)) {
+      const parsedKey = deserialize(key);
+      const val = JSON.parse(value);
+      if (typeof val == "string" && val.startsWith("#REF:$")) {
+        deserializedObj[parsedKey] = val;
+        continue;
+      }
+      deserializedObj[parsedKey] = deserialize(value);
+    }
+  } else {
+    deserializedObj = [];
+
+    obj.value.forEach((ele) => {
+      const val = JSON.parse(ele);
+      if (typeof val == "string" && val.startsWith("#REF:$")) {
+        deserializedObj.push(val);
+        return;
+      }
+      const deserEle = deserialize(ele);
+      deserializedObj.push(deserEle);
+    });
+  }
+
+  console.log(deserializedObj);
+  const resObj = resolveRefsObjs(deserializedObj);
+  // console.log(deserializedObj);
+
+  return resObj;
 };
 
 // resolves all circular and duplicate references in the partially
 // deserialized object -- credit to https://stackoverflow.com/questions/10392293/stringify-convert-to-json-a-javascript-object-with-circular-reference
 // for algo
-function resolveRefs(inputObj) {
+function resolveRefsObjs(inputObj) {
   let objToPath = new Map();
   let pathToObj = new Map();
 
@@ -291,30 +307,33 @@ function resolveRefs(inputObj) {
   return inputObj;
 }
 
-// deserializes objects
-const deserializeObj = (obj) => {
-  if (obj.type != "object") {
-    console.error("Not an object");
-    return;
-  }
+function resolveRefsArrs(inputObj) {
+  let objToPath = new Map();
+  let pathToObj = new Map();
 
-  const deserializedObj = {};
+  let traverse = (parent, field) => {
+    let obj = parent;
+    let path = "#REF:$";
 
-  for (const [key, value] of Object.entries(obj.value)) {
-    const parsedKey = deserialize(key);
-    const val = JSON.parse(value);
-    if (typeof val == "string" && val.startsWith("#REF:$")) {
-      deserializedObj[parsedKey] = val;
-      continue;
+    if (field !== undefined) {
+      obj = parent[field];
+      path =
+        objToPath.get(parent) +
+        (Array.isArray(parent) ? `[${field}]` : `${field ? "." + field : ""}`);
     }
-    deserializedObj[parsedKey] = deserialize(value);
-  }
 
-  const resObj = resolveRefs(deserializedObj);
-  console.log(deserializedObj);
+    objToPath.set(obj, path);
+    pathToObj.set(path, obj);
 
-  return resObj;
-};
+    let ref = pathToObj.get(obj);
+    if (ref) parent[field] = ref;
+
+    for (let f in obj) if (obj === Object(obj)) traverse(obj, f);
+  };
+
+  traverse(inputObj);
+  return inputObj;
+}
 
 // main serialization function
 function serialize(obj) {
@@ -332,7 +351,7 @@ function serialize(obj) {
         return serializeNull(obj);
       }
       if (obj instanceof Array) {
-        return serializeArr(obj);
+        return serializeObjAndArrs(obj);
       }
       if (obj instanceof Error) {
         return serializeError(obj);
@@ -340,7 +359,7 @@ function serialize(obj) {
       if (obj instanceof Date) {
         return serializeDate(obj);
       }
-      return serializeObj(obj);
+      return serializeObjAndArrs(obj);
     case "function":
       return serializeFunc(obj);
     default:
@@ -366,9 +385,9 @@ function deserialize(string) {
     case "error":
       return deserializeError(draft);
     case "object":
-      return deserializeObj(draft);
+      return deserializeObjAndArrs(draft);
     case "array":
-      return deserializeArr(draft);
+      return deserializeObjAndArrs(draft);
     case "date":
       return deserializeDate(draft);
     case "null":

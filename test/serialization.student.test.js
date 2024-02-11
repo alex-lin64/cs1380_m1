@@ -20,3 +20,5 @@ test("(0 pts) circularArray2", () => {
   const deserialized = util.deserialize(serialized);
   expect(deserialized).toBe(y);
 });
+
+// [[1, 2, 3, y, [3, x]], [1, 2, 3, y, [3, x]], y];
