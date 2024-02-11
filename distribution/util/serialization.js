@@ -19,45 +19,49 @@ const http2 = require("http2");
 const v8 = require("v8");
 
 let init = false; // false on startup, true after natives been initialized
-var natives = new Map(); // native-hash -> constructs
+var pathToNatives = new Map(); // native-hash -> constructs
+var nativesToPath = new Map();
+pathToNatives.set("global", global);
+pathToNatives.set("globalThis.global", globalThis.global);
+pathToNatives.set("globalThis.globalThis", globalThis);
+nativesToPath.set(global, "global");
+nativesToPath.set(globalThis.global, "globalThis.global");
+nativesToPath.set(globalThis, "globalThis.globalThis");
+
 // init a map of native objects and functions
-function initNative() {
+function initNativeObjs() {
   if (init) {
     return;
   }
+  function dfs(obj, curPath) {
+    if (pathToNatives.has(curPath) || typeof obj != "object" || obj == null) {
+      return;
+    }
+    console.log(curPath);
 
-  // Helper function to recursively traverse objects and functions
-  function traverse(obj, path) {
-    if (typeof obj !== "object" && typeof obj !== "function") return;
+    pathToNatives.set(curPath, obj);
+    nativesToPath.set(obj, curPath);
 
-    // Map object or function to its path
-    natives.set(path, obj);
-
-    // Recursively traverse properties if obj is an object
-    if (typeof obj === "object") {
-      for (const key in obj) {
-        traverse(obj[key], `${path}.${key}`);
+    Object.getOwnPropertyNames(obj).forEach((key) => {
+      if (key == "globalThis" || key == "global") {
+        return;
       }
-    }
-
-    // Recursively traverse prototype if obj is a function
-    if (typeof obj === "function" && obj.prototype) {
-      traverse(obj.prototype, `${path}.prototype`);
-    }
+      console.log(key);
+      dfs(obj[key], `${curPath}.${key}`);
+    });
   }
-
-  // Start traversal from globalThis
-  for (const key in globalThis) {
-    traverse(globalThis[key], key);
-  }
-
-  // Example usage
-  console.log(natives);
+  dfs(globalThis, "globalThis");
   init = true;
 }
+
+// init map of native functions
+function initNativeFuncs() {}
+
 // runs initNative() on module startup
 (() => {
-  // initNative();
+  initNativeObjs();
+  // console.log(nativesToPath);
+  // console.log(pathToNatives);
 })();
 
 // serializes the basics (string, number, boolean)

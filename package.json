@@ -16,5 +16,8 @@
     "lint": "eslint --ignore-path .gitignore ."
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "object-hash": "^3.0.0"
+  }
 }
