@@ -1,10 +1,33 @@
-const crypto = require("crypto");
+class Queue {
+  constructor(arr) {
+    this.items = arr;
+  }
 
-// hashes a string input
-function hash(input) {
-  const hashFunction = crypto.createHash("sha256");
-  hashFunction.update(input);
-  return hashFunction.digest("hex");
+  enqueue(element) {
+    this.items.push(element);
+  }
+
+  dequeue() {
+    if (this.isEmpty()) {
+      return "Underflow";
+    }
+    return this.items.shift();
+  }
+
+  front() {
+    if (this.isEmpty()) {
+      return "No elements in Queue";
+    }
+    return this.items[0];
+  }
+
+  isEmpty() {
+    return this.items.length === 0;
+  }
+
+  length() {
+    return this.items.length;
+  }
 }
 
 // serializes the basics (string, number, boolean)
@@ -143,8 +166,6 @@ const deserializeFunc = (funcObj) => {
   }
 
   const rawFunc = deserialize(funcObj.value);
-  // const parameterRegex = /\((.*?)\)/;
-  // const parameters = rawFunc.match(parameterRegex)[1].split(/\s*,\s*/);
 
   const func = new Function(`return ${rawFunc}`)();
   // console.log(func.toString());
@@ -186,37 +207,85 @@ const deserializeArr = (arrObj) => {
   return arr;
 };
 
-// visited objs
-var visit = new Map();
+// recursively set all circular references to a ref id for arrays
+function circularArr(arr) {}
 
+// recursively set all circular references to a ref id for objs
+function circularObj(obj) {
+  // dfs to traverse all nodes in obj
+  function dfs(object, curPath) {
+    if (visit.has(object)) {
+      return visit.get(object);
+    }
+
+    visit.set(object, JSON.stringify(curPath));
+    const res = {
+      type: "object",
+      value: "",
+    };
+
+    const updatedObj = {};
+
+    for (const [key, value] of Object.entries(object)) {
+      if (
+        typeof value != "object" ||
+        object === null ||
+        object instanceof Date ||
+        object instanceof Error ||
+        object instanceof Array
+      ) {
+        updatedObj[serialize(key)] = serialize(value);
+        continue;
+      }
+      const newPath = curPath + `.${key.toString()}`;
+      updatedObj[serialize(key)] = dfs(value, newPath);
+    }
+    res.value = updatedObj;
+    return JSON.stringify(res);
+  }
+
+  const visit = new Map();
+  visit.set();
+
+  return dfs(obj, "#REF:$");
+}
+
+// seralizes an object
 const serializeObj = (obj) => {
-  // console.log(JSON.stringify(obj));
+  const res = circularObj(obj);
+  return res;
+};
 
-  // for nested obj's, should loop through and serialize each element
-  const serializedObj = {
-    type: "object",
-    value: "",
-    id: ""
+// resolves all circular and duplicate references in the partially
+// deserialized object -- credit to https://stackoverflow.com/questions/10392293/stringify-convert-to-json-a-javascript-object-with-circular-reference
+// for algo
+function resolveRefs(inputObj) {
+  let objToPath = new Map();
+  let pathToObj = new Map();
+
+  let traverse = (parent, field) => {
+    let obj = parent;
+    let path = "#REF:$";
+
+    if (field !== undefined) {
+      obj = parent[field];
+      path =
+        objToPath.get(parent) +
+        (Array.isArray(parent) ? `[${field}]` : `${field ? "." + field : ""}`);
+    }
+
+    objToPath.set(obj, path);
+    pathToObj.set(path, obj);
+
+    let ref = pathToObj.get(obj);
+    if (ref) parent[field] = ref;
+
+    for (let f in obj) if (obj === Object(obj)) traverse(obj, f);
   };
 
-  visit.set(hash(JSON.stringify(obj)), obj);
-
-  x = {g:1}
-  {a: 1, b: {p:x}}
-
-  const updatedObj = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (visit.has(value)) {
-      updatedObj[serialize(key)] = JSON.stringify("[Circular]");
-      continue;
-    }
-    updatedObj[serialize(key)] = serialize(value);
-  }
-  // console.log(updatedObj);
-  serializedObj.value = JSON.stringify(updatedObj);
-  console.log(serializedObj);
-  return JSON.stringify(serializedObj);
-};
+  traverse(inputObj);
+  return inputObj;
+}
 
 // deserializes objects
 const deserializeObj = (obj) => {
@@ -226,15 +295,24 @@ const deserializeObj = (obj) => {
   }
 
   const deserializedObj = {};
-  const rawObj = JSON.parse(obj.value);
 
-  for (const [key, value] of Object.entries(rawObj)) {
-    deserializedObj[deserialize(key)] = deserialize(value);
+  for (const [key, value] of Object.entries(obj.value)) {
+    const parsedKey = deserialize(key);
+    const val = JSON.parse(value);
+    if (typeof val == "string" && val.startsWith("#REF:$")) {
+      deserializedObj[parsedKey] = val;
+      continue;
+    }
+    deserializedObj[parsedKey] = deserialize(value);
   }
 
-  return deserializedObj;
+  const resObj = resolveRefs(deserializedObj);
+  console.log(deserializedObj);
+
+  return resObj;
 };
 
+// main serialization function
 function serialize(obj) {
   switch (typeof obj) {
     case "string":
@@ -266,6 +344,7 @@ function serialize(obj) {
   }
 }
 
+// main deserialization function
 function deserialize(string) {
   // console.log(string);
 

@@ -1,8 +1,22 @@
 const util = require("../distribution").util;
 
-test("(0 pts) sample test", () => {
-  const number = 42;
-  const serialized = util.serialize(number);
+test("(0 pts) circularArray1", () => {
+  const x = [1, 2, 3];
+  const y = [x, x];
+  y.push(y);
+  const serialized = util.serialize(y);
   const deserialized = util.deserialize(serialized);
-  expect(deserialized).toBe(number);
+  expect(deserialized).toBe(y);
+});
+
+test("(0 pts) circularArray2", () => {
+  const x = [1, 2, 3];
+  const z = [3, x];
+  const y = [x, x];
+  y.push(y);
+  x.push(y);
+  x.push(z);
+  const serialized = util.serialize(y);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized).toBe(y);
 });
