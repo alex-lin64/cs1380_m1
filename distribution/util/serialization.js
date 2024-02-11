@@ -1,3 +1,65 @@
+// hardcode builtin libraries to serialize/deserialize
+const fs = require("fs");
+const http = require("http");
+const https = require("https");
+const url = require("url");
+const path = require("path");
+const os = require("os");
+const events = require("events");
+const stream = require("stream");
+const util = require("util");
+const querystring = require("querystring");
+const zlib = require("zlib");
+const buffer = require("buffer");
+const childProcess = require("child_process");
+const cluster = require("cluster");
+const dgram = require("dgram");
+const dns = require("dns");
+const http2 = require("http2");
+const v8 = require("v8");
+
+let init = false; // false on startup, true after natives been initialized
+var natives = new Map(); // native-hash -> constructs
+// init a map of native objects and functions
+function initNative() {
+  if (init) {
+    return;
+  }
+
+  // Helper function to recursively traverse objects and functions
+  function traverse(obj, path) {
+    if (typeof obj !== "object" && typeof obj !== "function") return;
+
+    // Map object or function to its path
+    natives.set(path, obj);
+
+    // Recursively traverse properties if obj is an object
+    if (typeof obj === "object") {
+      for (const key in obj) {
+        traverse(obj[key], `${path}.${key}`);
+      }
+    }
+
+    // Recursively traverse prototype if obj is a function
+    if (typeof obj === "function" && obj.prototype) {
+      traverse(obj.prototype, `${path}.prototype`);
+    }
+  }
+
+  // Start traversal from globalThis
+  for (const key in globalThis) {
+    traverse(globalThis[key], key);
+  }
+
+  // Example usage
+  console.log(natives);
+  init = true;
+}
+// runs initNative() on module startup
+(() => {
+  // initNative();
+})();
+
 // serializes the basics (string, number, boolean)
 const serializeBasics = (basicType) => {
   const obj = {
@@ -310,8 +372,6 @@ function serialize(obj) {
 
 // main deserialization function
 function deserialize(string) {
-  // console.log(string);
-
   // convert the jsonify'd format to obj
   const draft = JSON.parse(string);
   const t = draft.type;
