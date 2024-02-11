@@ -207,11 +207,8 @@ const deserializeArr = (arrObj) => {
   return arr;
 };
 
-// recursively set all circular references to a ref id for arrays
-function circularArr(arr) {}
-
 // recursively set all circular references to a ref id for objs
-function circularObj(obj) {
+function circularObjAndArrs(obj) {
   // dfs to traverse all nodes in obj
   function dfs(object, curPath) {
     if (visit.has(object)) {
@@ -220,26 +217,33 @@ function circularObj(obj) {
 
     visit.set(object, JSON.stringify(curPath));
     const res = {
-      type: "object",
+      type: object instanceof Array ? "array" : "object",
       value: "",
     };
 
-    const updatedObj = {};
-
-    for (const [key, value] of Object.entries(object)) {
-      if (
-        typeof value != "object" ||
-        object === null ||
-        object instanceof Date ||
-        object instanceof Error ||
-        object instanceof Array
-      ) {
-        updatedObj[serialize(key)] = serialize(value);
-        continue;
+    let updatedObj = null;
+    // if array, traverse like array
+    if (object instanceof Array) {
+    } else {
+      // traverse like object
+      updatedObj = {};
+      // loop every key-value pair
+      for (const [key, value] of Object.entries(object)) {
+        if (
+          typeof value != "object" ||
+          object === null ||
+          object instanceof Date ||
+          object instanceof Error ||
+          object instanceof Array
+        ) {
+          updatedObj[serialize(key)] = serialize(value);
+          continue;
+        }
+        const newPath = curPath + `.${key.toString()}`;
+        updatedObj[serialize(key)] = dfs(value, newPath);
       }
-      const newPath = curPath + `.${key.toString()}`;
-      updatedObj[serialize(key)] = dfs(value, newPath);
     }
+
     res.value = updatedObj;
     return JSON.stringify(res);
   }
