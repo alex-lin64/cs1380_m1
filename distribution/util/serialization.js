@@ -1,33 +1,12 @@
-// hardcode builtin libraries to serialize/deserialize
-// const fs = require("fs");
-// const http = require("http");
-// const https = require("https");
-// const url = require("url");
-// const path = require("path");
-// const os = require("os");
-// const events = require("events");
-// const stream = require("stream");
-// const util = require("util");
-// const querystring = require("querystring");
-// const zlib = require("zlib");
-// const buffer = require("buffer");
-// const childProcess = require("child_process");
-// const cluster = require("cluster");
-// const dgram = require("dgram");
-// const dns = require("dns");
-// const http2 = require("http2");
-// const v8 = require("v8");
-
-let initObjs = false; // false on startup, true after native objects been initialized
-let initFunc = false; // false on startup, true after native functions been initialized
+let initObjs = false; // false on startup, true after initialization
 var pathToNatives = new Map(); // native-hash -> constructs
 var nativesToPath = new Map();
-pathToNatives.set("global", global);
-pathToNatives.set("globalThis.global", globalThis.global);
-pathToNatives.set("globalThis.globalThis", globalThis);
-nativesToPath.set(global, "global");
-nativesToPath.set(globalThis.global, "globalThis.global");
-nativesToPath.set(globalThis, "globalThis.globalThis");
+pathToNatives.set('global', global);
+pathToNatives.set('globalThis.global', globalThis.global);
+pathToNatives.set('globalThis.globalThis', globalThis);
+nativesToPath.set(global, 'global');
+nativesToPath.set(globalThis.global, 'globalThis.global');
+nativesToPath.set(globalThis, 'globalThis.globalThis');
 
 // init a map of native objects and functions
 function initNativeObjs() {
@@ -38,7 +17,7 @@ function initNativeObjs() {
   function dfs(obj, curPath) {
     if (
       pathToNatives.has(curPath) ||
-      (typeof obj != "object" && typeof obj != "function") ||
+      (typeof obj != 'object' && typeof obj != 'function') ||
       obj == null
     ) {
       return;
@@ -63,36 +42,10 @@ function initNativeObjs() {
   }
 
   const visit = new Set();
-  visit.add("globalThis");
-  dfs(globalThis, "globalThis");
+  visit.add('globalThis');
+  dfs(globalThis, 'globalThis');
   initObjs = true;
 }
-
-// // init map of native functions
-// function initNativeFuncs() {
-//   if (initFunc) {
-//     return;
-//   }
-//   function dfs(obj, curPath) {
-//     if (pathToNatives.has(curPath) || typeof obj != "object" || obj == null) {
-//       return;
-//     }
-//     console.log(curPath);
-
-//     pathToNatives.set(curPath, obj);
-//     nativesToPath.set(obj, curPath);
-
-//     Object.getOwnPropertyNames(obj).forEach((key) => {
-//       if (key == "globalThis" || key == "global") {
-//         return;
-//       }
-//       // console.log(key);
-//       dfs(obj[key], `${curPath}.${key}`);
-//     });
-//   }
-//   dfs(globalThis, "globalThis");
-//   initFunc = true;
-// }
 
 // runs initNative() on module startup
 (() => {
@@ -111,8 +64,8 @@ const serializeBasics = (basicType) => {
 // deserializes the basics (string, number, boolean)
 const deserializeBasics = (basicObj) => {
   const t = basicObj.type;
-  if (t != "string" && t != "number" && t != "boolean") {
-    console.error("Not a basic type");
+  if (t != 'string' && t != 'number' && t != 'boolean') {
+    console.error('Not a basic type');
     return;
   }
   const basic = JSON.parse(basicObj.value);
@@ -122,7 +75,7 @@ const deserializeBasics = (basicObj) => {
 // serializes error objects
 const serializeError = (err) => {
   const errObj = {
-    type: "error",
+    type: 'error',
     value: err.message,
   };
   return JSON.stringify(errObj);
@@ -130,8 +83,8 @@ const serializeError = (err) => {
 
 // deserializes error objects
 const deserializeError = (errObj) => {
-  if (errObj.type != "error") {
-    console.error("Not an error object");
+  if (errObj.type != 'error') {
+    console.error('Not an error object');
     return;
   }
   const err = new Error(errObj.value);
@@ -141,7 +94,7 @@ const deserializeError = (errObj) => {
 // serializes date objects
 const serializeDate = (date) => {
   const dateObj = {
-    type: "date",
+    type: 'date',
     value: {},
   };
   let dateInfo = {};
@@ -160,28 +113,28 @@ const serializeDate = (date) => {
 
 // deserializes date objects
 const deserializeDate = (dateObj) => {
-  if (dateObj.type != "date") {
-    console.error("Not an date object");
+  if (dateObj.type != 'date') {
+    console.error('Not an date object');
     return;
   }
 
   const dateInfo = JSON.parse(dateObj.value);
 
   return new Date(
-    dateInfo.year,
-    dateInfo.month,
-    dateInfo.day,
-    dateInfo.hours,
-    dateInfo.minutes,
-    dateInfo.seconds,
-    dateInfo.milliseconds
+      dateInfo.year,
+      dateInfo.month,
+      dateInfo.day,
+      dateInfo.hours,
+      dateInfo.minutes,
+      dateInfo.seconds,
+      dateInfo.milliseconds,
   );
 };
 
 // serialize null objects
 const serializeNull = () => {
   const nullObj = {
-    type: "null",
+    type: 'null',
     value: null,
   };
   return JSON.stringify(nullObj);
@@ -189,8 +142,8 @@ const serializeNull = () => {
 
 // deserialize null objects
 const deserializeNull = (nullObj) => {
-  if (nullObj.type != "null") {
-    console.error("Not an null object");
+  if (nullObj.type != 'null') {
+    console.error('Not an null object');
     return;
   }
 
@@ -200,8 +153,8 @@ const deserializeNull = (nullObj) => {
 // serialize undefined values
 const serializeUndefined = () => {
   const undefinedObj = {
-    type: "undefined",
-    value: "",
+    type: 'undefined',
+    value: '',
   };
 
   return JSON.stringify(undefinedObj);
@@ -209,8 +162,8 @@ const serializeUndefined = () => {
 
 // deserialize undefined values
 const deserializeUndefined = (undefinedObj) => {
-  if (undefinedObj.type != "undefined") {
-    console.error("Not an undefined object");
+  if (undefinedObj.type != 'undefined') {
+    console.error('Not an undefined object');
     return;
   }
 
@@ -220,8 +173,8 @@ const deserializeUndefined = (undefinedObj) => {
 // serializes a function
 const serializeFunc = (func) => {
   const funcObj = {
-    type: "function",
-    value: "",
+    type: 'function',
+    value: '',
   };
   // if the funciton is native function, get custom encoding
   if (nativesToPath.has(func)) {
@@ -234,8 +187,8 @@ const serializeFunc = (func) => {
 
 // deserializes a function
 const deserializeFunc = (funcObj) => {
-  if (funcObj.type != "function") {
-    console.error("Not a function object");
+  if (funcObj.type != 'function') {
+    console.error('Not a function object');
     return;
   }
   // if func is serialized native, return the value
@@ -256,8 +209,8 @@ const serializeObjAndArrs = (obj) => {
 
     visit.set(object, JSON.stringify(curPath));
     const res = {
-      type: object instanceof Array ? "array" : "object",
-      value: "",
+      type: object instanceof Array ? 'array' : 'object',
+      value: '',
     };
 
     // check if is native, if yes, return custom encoding
@@ -278,7 +231,7 @@ const serializeObjAndArrs = (obj) => {
           return JSON.stringify(res);
         }
         if (
-          typeof ele !== "object" ||
+          typeof ele !== 'object' ||
           ele === null ||
           ele instanceof Date ||
           ele instanceof Error
@@ -295,7 +248,7 @@ const serializeObjAndArrs = (obj) => {
       for (const [key, value] of Object.entries(object)) {
         // check if is native, if yes, return custom encoding
         if (
-          typeof value != "object" ||
+          typeof value != 'object' ||
           value === null ||
           value instanceof Date ||
           value instanceof Error
@@ -311,19 +264,19 @@ const serializeObjAndArrs = (obj) => {
     return JSON.stringify(res);
   }
   const visit = new Map();
-  return dfs(obj, "#REF:$");
+  return dfs(obj, '#REF:$');
 };
 
 // deserializes objects and arrays
 const deserializePartial = (obj) => {
-  if (obj.type != "object" && obj.type != "array") {
-    console.error("Not an object or array");
+  if (obj.type != 'object' && obj.type != 'array') {
+    console.error('Not an object or array');
     return;
   }
 
   let deserializedObj;
 
-  if (obj.type == "object") {
+  if (obj.type == 'object') {
     deserializedObj = {};
 
     // check if native object
@@ -334,11 +287,11 @@ const deserializePartial = (obj) => {
     for (const [key, value] of Object.entries(obj.value)) {
       const parsedKey = deserialize(key);
       const val = JSON.parse(value);
-      if (typeof val == "string" && val.startsWith("#REF:$")) {
+      if (typeof val == 'string' && val.startsWith('#REF:$')) {
         deserializedObj[parsedKey] = val;
         continue;
       }
-      if (val.type == "object" || val.type == "array") {
+      if (val.type == 'object' || val.type == 'array') {
         deserializedObj[parsedKey] = deserializePartial(val);
         continue;
       }
@@ -349,11 +302,11 @@ const deserializePartial = (obj) => {
 
     obj.value.forEach((ele) => {
       const val = JSON.parse(ele);
-      if (typeof val == "string" && val.startsWith("#REF:$")) {
+      if (typeof val == 'string' && val.startsWith('#REF:$')) {
         deserializedObj.push(val);
         return;
       }
-      if (val.type == "object" || val.type == "array") {
+      if (val.type == 'object' || val.type == 'array') {
         deserializedObj.push(deserializePartial(val));
         return;
       }
@@ -379,13 +332,13 @@ function resolveRefsObjs(inputObj) {
 
   let traverse = (parent, field) => {
     let obj = parent;
-    let path = "#REF:$";
+    let path = '#REF:$';
 
     if (field !== undefined) {
       obj = parent[field];
       path =
         objToPath.get(parent) +
-        (Array.isArray(parent) ? `[${field}]` : `${field ? "." + field : ""}`);
+        (Array.isArray(parent) ? `[${field}]` : `${field ? '.' + field : ''}`);
     }
 
     objToPath.set(obj, path);
@@ -404,15 +357,15 @@ function resolveRefsObjs(inputObj) {
 // main serialization function
 function serialize(obj) {
   switch (typeof obj) {
-    case "string":
+    case 'string':
       return serializeBasics(obj);
-    case "number":
+    case 'number':
       return serializeBasics(obj);
-    case "boolean":
+    case 'boolean':
       return serializeBasics(obj);
-    case "undefined":
+    case 'undefined':
       return serializeUndefined(obj);
-    case "object":
+    case 'object':
       if (obj === null) {
         return serializeNull(obj);
       }
@@ -426,10 +379,10 @@ function serialize(obj) {
         return serializeDate(obj);
       }
       return serializeObjAndArrs(obj);
-    case "function":
+    case 'function':
       return serializeFunc(obj);
     default:
-      console.error("No cases matched for serialization");
+      console.error('No cases matched for serialization');
   }
 }
 
@@ -440,28 +393,28 @@ function deserialize(string) {
   const t = draft.type;
 
   switch (t) {
-    case "number":
+    case 'number':
       return deserializeBasics(draft);
-    case "string":
+    case 'string':
       return deserializeBasics(draft);
-    case "boolean":
+    case 'boolean':
       return deserializeBasics(draft);
-    case "error":
+    case 'error':
       return deserializeError(draft);
-    case "object":
+    case 'object':
       return deserializeObjAndArrs(draft);
-    case "array":
+    case 'array':
       return deserializeObjAndArrs(draft);
-    case "date":
+    case 'date':
       return deserializeDate(draft);
-    case "null":
+    case 'null':
       return deserializeNull(draft);
-    case "undefined":
+    case 'undefined':
       return deserializeUndefined(draft);
-    case "function":
+    case 'function':
       return deserializeFunc(draft);
     default:
-      console.error("No cases matched for deserialization");
+      console.error('No cases matched for deserialization');
   }
 }
 
