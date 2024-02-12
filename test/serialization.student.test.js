@@ -35,9 +35,17 @@ test("(0 pts) circularArrayAndObjMix", () => {
   expect(deserialized).toEqual(y);
 });
 
-test("(0 pts) nativeObjects", () => {
+test("(0 pts) nativeObjects1", () => {
   const x = Array.prototype;
   const serialized = util.serialize(x);
   const deserialized = util.deserialize(serialized);
   expect(deserialized).toEqual(x);
+});
+
+test("(0 pts) nativeObjects2", () => {
+  const x = [console.log, Array.prototype];
+  x.push(x);
+  const serialized = util.serialize(x);
+  const deserialized = util.deserialize(serialized);
+  expect(deserialized[1]).toEqual(Array.prototype);
 });

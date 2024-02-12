@@ -267,6 +267,13 @@ const serializeObjAndArrs = (obj) => {
     // if array, traverse like array
     if (object instanceof Array) {
       updatedObj = object.map((ele, i) => {
+        if (nativesToPath.has(ele)) {
+          const res = {
+            type: typeof ele,
+            value: nativesToPath.get(ele),
+          };
+          return JSON.stringify(res);
+        }
         if (
           typeof ele !== "object" ||
           ele === null ||
@@ -283,6 +290,7 @@ const serializeObjAndArrs = (obj) => {
       updatedObj = {};
       // loop every key-value pair
       for (const [key, value] of Object.entries(object)) {
+        // check if is native, if yes, return custom encoding
         if (
           typeof value != "object" ||
           value === null ||
