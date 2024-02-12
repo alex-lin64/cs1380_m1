@@ -1,24 +1,25 @@
 // hardcode builtin libraries to serialize/deserialize
-const fs = require("fs");
-const http = require("http");
-const https = require("https");
-const url = require("url");
-const path = require("path");
-const os = require("os");
-const events = require("events");
-const stream = require("stream");
-const util = require("util");
-const querystring = require("querystring");
-const zlib = require("zlib");
-const buffer = require("buffer");
-const childProcess = require("child_process");
-const cluster = require("cluster");
-const dgram = require("dgram");
-const dns = require("dns");
-const http2 = require("http2");
-const v8 = require("v8");
+// const fs = require("fs");
+// const http = require("http");
+// const https = require("https");
+// const url = require("url");
+// const path = require("path");
+// const os = require("os");
+// const events = require("events");
+// const stream = require("stream");
+// const util = require("util");
+// const querystring = require("querystring");
+// const zlib = require("zlib");
+// const buffer = require("buffer");
+// const childProcess = require("child_process");
+// const cluster = require("cluster");
+// const dgram = require("dgram");
+// const dns = require("dns");
+// const http2 = require("http2");
+// const v8 = require("v8");
 
-let init = false; // false on startup, true after natives been initialized
+let initObjs = false; // false on startup, true after native objects been initialized
+let initFunc = false; // false on startup, true after native functions been initialized
 var pathToNatives = new Map(); // native-hash -> constructs
 var nativesToPath = new Map();
 pathToNatives.set("global", global);
@@ -30,38 +31,69 @@ nativesToPath.set(globalThis, "globalThis.globalThis");
 
 // init a map of native objects and functions
 function initNativeObjs() {
-  if (init) {
+  if (initObjs) {
     return;
   }
+
   function dfs(obj, curPath) {
-    if (pathToNatives.has(curPath) || typeof obj != "object" || obj == null) {
+    if (
+      pathToNatives.has(curPath) ||
+      (typeof obj != "object" && typeof obj != "function") ||
+      obj == null
+    ) {
       return;
     }
-    console.log(curPath);
-
     pathToNatives.set(curPath, obj);
     nativesToPath.set(obj, curPath);
 
     Object.getOwnPropertyNames(obj).forEach((key) => {
-      if (key == "globalThis" || key == "global") {
+      if (visit.has(key)) {
         return;
       }
-      console.log(key);
+      visit.add(key);
+      if (Object.getOwnPropertyDescriptor(obj, key).value === undefined) {
+        return;
+      }
       dfs(obj[key], `${curPath}.${key}`);
+      visit.delete(key);
     });
   }
+
+  const visit = new Set();
+  visit.add("globalThis");
   dfs(globalThis, "globalThis");
-  init = true;
+  initObjs = true;
 }
 
-// init map of native functions
-function initNativeFuncs() {}
+// // init map of native functions
+// function initNativeFuncs() {
+//   if (initFunc) {
+//     return;
+//   }
+//   function dfs(obj, curPath) {
+//     if (pathToNatives.has(curPath) || typeof obj != "object" || obj == null) {
+//       return;
+//     }
+//     console.log(curPath);
+
+//     pathToNatives.set(curPath, obj);
+//     nativesToPath.set(obj, curPath);
+
+//     Object.getOwnPropertyNames(obj).forEach((key) => {
+//       if (key == "globalThis" || key == "global") {
+//         return;
+//       }
+//       // console.log(key);
+//       dfs(obj[key], `${curPath}.${key}`);
+//     });
+//   }
+//   dfs(globalThis, "globalThis");
+//   initFunc = true;
+// }
 
 // runs initNative() on module startup
 (() => {
   initNativeObjs();
-  // console.log(nativesToPath);
-  // console.log(pathToNatives);
 })();
 
 // serializes the basics (string, number, boolean)
@@ -186,9 +218,14 @@ const deserializeUndefined = (undefinedObj) => {
 const serializeFunc = (func) => {
   const funcObj = {
     type: "function",
-    value: serialize(func.toString()),
+    value: "",
   };
-
+  // if the funciton is native function, get custom encoding
+  if (nativesToPath.has(func)) {
+    funcObj.value = nativesToPath.get(func);
+    return JSON.stringify(funcObj);
+  }
+  funcObj.value = JSON.stringify(func.toString());
   return JSON.stringify(funcObj);
 };
 
@@ -198,11 +235,11 @@ const deserializeFunc = (funcObj) => {
     console.error("Not a function object");
     return;
   }
-
-  const rawFunc = deserialize(funcObj.value);
-
-  const func = new Function(`return ${rawFunc}`)();
-  // console.log(func.toString());
+  // if func is serialized native, return the value
+  if (pathToNatives.has(funcObj.value)) {
+    return pathToNatives.get(funcObj.value);
+  }
+  const func = new Function(`return ${JSON.parse(funcObj.value)}`)();
   return func;
 };
 
@@ -219,6 +256,12 @@ const serializeObjAndArrs = (obj) => {
       type: object instanceof Array ? "array" : "object",
       value: "",
     };
+
+    // check if is native, if yes, return custom encoding
+    if (nativesToPath.has(obj)) {
+      res.value = nativesToPath.get(obj);
+      return JSON.stringify(res);
+    }
 
     let updatedObj;
     // if array, traverse like array
@@ -271,6 +314,11 @@ const deserializePartial = (obj) => {
 
   if (obj.type == "object") {
     deserializedObj = {};
+
+    // check if native object
+    if (pathToNatives.has(obj.value)) {
+      return pathToNatives.get(obj.value);
+    }
 
     for (const [key, value] of Object.entries(obj.value)) {
       const parsedKey = deserialize(key);
