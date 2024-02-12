@@ -51,7 +51,10 @@ function initNativeObjs() {
         return;
       }
       visit.add(key);
-      if (Object.getOwnPropertyDescriptor(obj, key).value === undefined) {
+      if (
+        Object.getOwnPropertyDescriptor(obj, key) &&
+        Object.getOwnPropertyDescriptor(obj, key).value === undefined
+      ) {
         return;
       }
       dfs(obj[key], `${curPath}.${key}`);
